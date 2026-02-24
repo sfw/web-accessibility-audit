@@ -1,0 +1,403 @@
+name: web-accessibility-audit
+version: "0.1.0"
+schema_version: 2
+description: >
+  End-to-end website accessibility audit workflow for public or private web
+  properties. Defines scope and compliance profile, inventories representative
+  pages and critical journeys, combines automated and manual evaluation, and
+  produces WCAG-mapped findings plus a prioritized remediation roadmap.
+author: "Loom Community"
+tags: [accessibility, a11y, wcag, compliance, ux, audit]
+
+persona: |
+  You are a senior web accessibility auditor and remediation advisor. You think
+  in user journeys, assistive technology support, and standards conformance.
+  Distinguish clearly between automated findings, manual findings, and
+  assumptions. Every finding must map to relevant WCAG success criteria and
+  include concrete remediation guidance with owner-ready implementation detail.
+
+phase_mode: strict
+
+tool_guidance: |
+  Use CSV for finding registries, matrices, and prioritized backlogs.
+  Use Markdown for narrative artifacts and compliance summaries.
+  Use bundled tools (`a11y_url_inventory`, `a11y_scan`, `a11y_flow_check`) for
+  repeatable evidence capture, then validate high-impact issues manually.
+
+tools:
+  guidance: >
+    Use web_search/web_fetch for standards and legal context, a11y_url_inventory
+    for sampling, a11y_scan for baseline heuristics, a11y_flow_check for journey
+    checks, and document_write/spreadsheet for final outputs.
+  required: [web_search, web_fetch, read_file, write_file, document_write, spreadsheet, search_files, a11y_url_inventory, a11y_scan, a11y_flow_check]
+  excluded: [delete_file, shell_execute, git_command]
+
+phases:
+  - id: scope-and-profile
+    description: >
+      Establish audit boundaries and compliance objective. Capture target
+      properties, user journeys, supported browsers/devices, locales, and
+      conformance profile (WCAG 2.2 AA baseline plus jurisdiction-specific
+      overlays as needed).
+    depends_on: []
+    model_tier: 2
+    verification_tier: 2
+    is_critical_path: true
+    acceptance_criteria: >
+      Scope includes at least one primary and one secondary user journey,
+      explicit in/out boundaries, and documented compliance profile with
+      version/date context. Assumptions and constraints are separated.
+    deliverables:
+      - "audit-scope.md — scope, boundaries, environments, assumptions"
+      - "compliance-profile.md — WCAG/jurisdiction profile and interpretation notes"
+      - "journey-inventory.csv — critical journeys, actor, and business impact"
+
+  - id: inventory-and-sampling
+    description: >
+      Build a representative page/state sample covering templates, unique
+      components, and complete critical journeys. Include public and authenticated
+      areas if in scope.
+    depends_on: [scope-and-profile]
+    model_tier: 2
+    verification_tier: 2
+    is_critical_path: true
+    acceptance_criteria: >
+      URL inventory includes template clustering and representative sampling.
+      Sample explicitly covers all critical journeys and top-traffic templates.
+    deliverables:
+      - "url-inventory.csv — discovered URLs with template grouping"
+      - "url-sample.csv — representative audit sample with rationale"
+      - "template-map.csv — template/component clusters and counts"
+
+  - id: automated-audit
+    description: >
+      Run repeatable automated checks across the sampled URLs to identify
+      obvious or high-volume defects and prioritize manual follow-up.
+    depends_on: [inventory-and-sampling]
+    model_tier: 2
+    verification_tier: 2
+    acceptance_criteria: >
+      Automated scan covers sampled URLs and outputs normalized findings with
+      WCAG mapping, severity, and evidence fields.
+    deliverables:
+      - "automated-findings.csv — machine-detected findings with WCAG mapping"
+      - "automated-audit-summary.md — scan coverage, top patterns, and limitations"
+
+  - id: manual-audit
+    description: >
+      Perform manual validation for keyboard access, focus management, semantics,
+      form behavior/errors, reflow/zoom behavior, and assistive-technology
+      compatibility on critical journeys.
+    depends_on: [inventory-and-sampling, automated-audit]
+    model_tier: 3
+    verification_tier: 2
+    is_critical_path: true
+    acceptance_criteria: >
+      Manual testing covers each critical journey end-to-end, including at least
+      keyboard-only and screen-reader checks on representative pages/states.
+    deliverables:
+      - "manual-findings.csv — manual findings with evidence and impact"
+      - "manual-test-notes.md — step-by-step manual test observations"
+
+  - id: findings-normalization
+    description: >
+      Merge and deduplicate automated and manual findings into a single issue
+      register with consistent severities, WCAG criteria, affected user groups,
+      and remediation metadata.
+    depends_on: [automated-audit, manual-audit]
+    model_tier: 2
+    verification_tier: 2
+    is_critical_path: true
+    acceptance_criteria: >
+      Unified register has unique issue IDs, impacted journey/page references,
+      severity, WCAG success criteria, evidence, and confidence.
+    deliverables:
+      - "findings-register.csv — deduplicated issue register"
+      - "wcag-coverage-matrix.csv — criteria coverage and gap summary"
+
+  - id: remediation-roadmap
+    description: >
+      Convert normalized findings into an implementation-ready backlog with
+      prioritization by impact, effort, risk, and dependency sequencing.
+    depends_on: [findings-normalization]
+    model_tier: 3
+    verification_tier: 2
+    acceptance_criteria: >
+      Backlog includes priority tier, owning team role, implementation guidance,
+      estimated effort, and validation strategy for each high/critical issue.
+    deliverables:
+      - "remediation-backlog.csv — prioritized remediation backlog"
+      - "quick-wins.md — low-effort high-impact remediation opportunities"
+      - "implementation-guidelines.md — engineering/design/content guidance"
+
+  - id: final-report
+    description: >
+      Synthesize scope, findings, and roadmap into a decision-ready final report
+      with conformance summary, residual risk, and retest strategy.
+    depends_on: [scope-and-profile, findings-normalization, remediation-roadmap]
+    model_tier: 3
+    verification_tier: 2
+    is_critical_path: true
+    is_synthesis: true
+    acceptance_criteria: >
+      Final report includes executive summary, methodology, profile alignment,
+      high-risk findings, prioritized plan, residual risks, and retest cadence.
+    deliverables:
+      - "accessibility-audit-report.md — complete audit report"
+      - "conformance-summary.md — conformance status and risk statement"
+      - "retest-plan.md — validation and regression-prevention plan"
+
+tests:
+  - id: smoke
+    mode: deterministic
+    goal: "Run the web-accessibility-audit workflow and produce all declared deliverables."
+    timeout_seconds: 900
+    acceptance:
+      phases:
+        must_include: [scope-and-profile, inventory-and-sampling, automated-audit, manual-audit, findings-normalization, remediation-roadmap, final-report]
+      deliverables:
+        must_exist: [audit-scope.md, compliance-profile.md, journey-inventory.csv, url-inventory.csv, url-sample.csv, template-map.csv, automated-findings.csv, automated-audit-summary.md, manual-findings.csv, manual-test-notes.md, findings-register.csv, wcag-coverage-matrix.csv, remediation-backlog.csv, quick-wins.md, implementation-guidelines.md, accessibility-audit-report.md, conformance-summary.md, retest-plan.md]
+      verification:
+        forbidden_patterns: ["Expected deliverable '.*' not found", "\\[TBD\\]|\\[TODO\\]|\\[INSERT\\]|\\[PLACEHOLDER\\]|\\[MISSING\\]"]
+
+  - id: live-canary
+    mode: live
+    goal: "Audit a target website for accessibility risks and produce an actionable remediation plan."
+    timeout_seconds: 1200
+    requires_network: true
+
+verification:
+  policy:
+    mode: llm_first
+    static_checks:
+      tool_success_policy: safety_integrity_only
+      file_integrity_policy: enforce_nonempty_changed_files
+      syntax_policy: enforce_parseable_artifacts
+      deliverable_existence_policy: enforce_declared_deliverables
+    semantic_checks:
+      - id: process-rules
+        check: "Apply process-defined verification rules and acceptance criteria."
+        severity: error
+        enforcement: hard
+        scope: phase
+    output_contract:
+      required_fields:
+        - passed
+        - outcome
+        - reason_code
+        - severity_class
+        - confidence
+        - feedback
+        - issues
+        - metadata
+      metadata_fields:
+        - coverage_gaps
+        - evidence_quality
+        - high_severity_count
+        - manual_check_coverage
+        - profile_consistency
+    outcome_policy:
+      pass_states: [pass, pass_with_warnings, partial_verified]
+      fail_states: [fail]
+  remediation:
+    strategies:
+      - id: targeted-remediation
+        retry_strategy: unconfirmed_data
+        description: "Address failing checks with minimal targeted edits."
+    default_strategy: targeted-remediation
+    critical_path_behavior: block
+    retry_budget:
+      max_attempts: 2
+    transient_retry_policy:
+      retry_on_transient: true
+  rules:
+    - name: no-placeholders
+      description: "No placeholder text in deliverables"
+      check: "\\[TBD\\]|\\[TODO\\]|\\[INSERT\\]|\\[PLACEHOLDER\\]|XX%|N/A"
+      severity: error
+      type: regex
+      target: deliverables
+      enforcement: hard
+      applies_to_phases: ["*"]
+
+    - name: wcag-mapping-required
+      description: "Findings must map to relevant WCAG success criteria"
+      check: >
+        Verify every finding includes at least one applicable WCAG criterion
+        reference (for example 1.1.1, 2.4.7, 3.3.1). Flag unmapped findings.
+      severity: error
+      type: llm
+      applies_to_phases: [automated-audit, manual-audit, findings-normalization, final-report]
+
+    - name: evidence-required-per-finding
+      description: "Each finding must include reproducible evidence"
+      check: >
+        Ensure each finding includes reproducible evidence: URL/state, affected
+        element or component hint, and concise reproduction notes.
+      severity: error
+      type: llm
+      applies_to_phases: [automated-audit, manual-audit, findings-normalization]
+
+    - name: complete-process-coverage
+      description: "Critical journeys must be fully tested"
+      check: >
+        Verify that each critical journey from journey-inventory.csv is covered
+        in manual testing and represented in the findings register or explicitly
+        marked as no-issue with evidence.
+      severity: error
+      type: llm
+      applies_to_phases: [manual-audit, findings-normalization, final-report]
+
+    - name: remediation-specificity
+      description: "Remediation guidance must be implementation-ready"
+      check: >
+        Confirm remediation items identify owning role/team, technical direction,
+        and concrete validation approach. Flag generic advice.
+      severity: warning
+      type: llm
+      applies_to_phases: [remediation-roadmap, final-report]
+
+    - name: profile-version-consistency
+      description: "Compliance profile must remain version-consistent"
+      check: >
+        Ensure the same compliance profile/version declared in
+        compliance-profile.md is used consistently throughout all outputs.
+      severity: error
+      type: llm
+      applies_to_phases: [scope-and-profile, final-report]
+
+evidence:
+  record_schema:
+    required_fields: [evidence_id, tool, source_url, created_at, quality]
+    facets: [target, page, template, component, criterion, severity, journey, region]
+  extraction:
+    include_result_facets: true
+    arg_mappings:
+      target: [target, domain, website, property]
+      region: [region, locale, country]
+      category: [criterion, wcag, issue_type, component]
+  summarization:
+    max_entries: 16
+    include_facets: true
+
+prompt_contracts:
+  evidence_contract:
+    enabled: true
+    applies_to_phases: ["*"]
+  executor_constraints: |
+    Keep claims traceable to evidence IDs or source URLs.
+    Separate automated checks from manual validation and state limitations.
+    If assumptions are necessary, label them explicitly.
+  verifier_constraints: |
+    Apply acceptance criteria and verification rules without assuming hidden
+    schema fields. Use metadata fields only when inferable.
+  remediation_instructions:
+    default: |
+      Preserve validated sections and patch only failing checks.
+      Prioritize missing evidence, WCAG mapping completeness, and journey coverage.
+
+memory:
+  extract_types:
+    - type: accessibility_finding
+      description: "A normalized accessibility issue with WCAG mapping and severity"
+    - type: conformance_gap
+      description: "A criterion or requirement not met for target scope"
+    - type: user_impact_pattern
+      description: "A recurring impact pattern on a disability/user cohort"
+    - type: remediation_decision
+      description: "A chosen remediation approach with rationale and owner role"
+    - type: testing_coverage_note
+      description: "Coverage note on templates, journeys, or states tested"
+  extraction_guidance: |
+    Prioritize reusable findings that affect high-value journeys or multiple
+    templates. Include criterion mapping, impacted user group, and evidence links.
+
+workspace_analysis:
+  scan_for:
+    - "**/*.html — templates and rendered pages"
+    - "**/*.jsx — component implementations"
+    - "**/*.tsx — component implementations"
+    - "**/*.vue — component implementations"
+    - "**/*.css — styling that may affect contrast/focus"
+    - "**/*sitemap*.xml — URL inventories"
+    - "**/*axe*.json — prior automated scan outputs"
+    - "**/*.md — existing accessibility notes and policies"
+  guidance: |
+    Reuse existing accessibility documentation and prior scan artifacts when
+    current. Prefer direct evidence from target pages and journeys over generic
+    assumptions.
+
+planner_examples:
+  - goal: "Audit a municipal services website for WCAG 2.2 AA and Title II risk"
+    subtasks:
+      - id: scope-and-profile
+        description: "Define legal/standard profile and service-journey scope"
+        depends_on: []
+        model_tier: 2
+      - id: inventory-and-sampling
+        description: "Inventory templates and sample representative public and form flows"
+        depends_on: [scope-and-profile]
+        model_tier: 2
+      - id: automated-audit
+        description: "Run automated checks to surface high-volume defects"
+        depends_on: [inventory-and-sampling]
+        model_tier: 2
+      - id: manual-audit
+        description: "Perform keyboard/screen-reader checks on critical service journeys"
+        depends_on: [inventory-and-sampling, automated-audit]
+        model_tier: 3
+      - id: findings-normalization
+        description: "Normalize and deduplicate findings with WCAG mapping"
+        depends_on: [automated-audit, manual-audit]
+        model_tier: 2
+      - id: remediation-roadmap
+        description: "Create owner-ready remediation backlog with quick wins"
+        depends_on: [findings-normalization]
+        model_tier: 3
+      - id: final-report
+        description: "Deliver final conformance summary, risk statement, and retest plan"
+        depends_on: [scope-and-profile, findings-normalization, remediation-roadmap]
+        model_tier: 3
+
+  - goal: "Audit an e-commerce storefront checkout journey for accessibility"
+    subtasks:
+      - id: scope-and-profile
+        description: "Define journey scope and compliance profile for storefront and checkout"
+        depends_on: []
+        model_tier: 2
+      - id: inventory-and-sampling
+        description: "Sample PDP, cart, checkout, account, and support templates"
+        depends_on: [scope-and-profile]
+        model_tier: 2
+      - id: automated-audit
+        description: "Run automated checks on sampled pages and states"
+        depends_on: [inventory-and-sampling]
+        model_tier: 2
+      - id: manual-audit
+        description: "Validate keyboard, forms, focus, and error handling through purchase flow"
+        depends_on: [inventory-and-sampling, automated-audit]
+        model_tier: 3
+      - id: findings-normalization
+        description: "Merge findings into deduplicated issue register"
+        depends_on: [automated-audit, manual-audit]
+        model_tier: 2
+      - id: remediation-roadmap
+        description: "Prioritize checkout blockers and reusable component fixes"
+        depends_on: [findings-normalization]
+        model_tier: 3
+      - id: final-report
+        description: "Produce conformance summary and phased remediation strategy"
+        depends_on: [scope-and-profile, findings-normalization, remediation-roadmap]
+        model_tier: 3
+
+replanning:
+  triggers: |
+    - Scope expands beyond agreed domains or environments
+    - Automated scan reveals widespread foundational issues across templates
+    - Critical journey coverage is incomplete due auth/access constraints
+    - Compliance profile changes mid-run
+  guidance: |
+    If scope changes, re-baseline audit-scope.md before continuing. If
+    foundational issues dominate, prioritize shared component remediation and
+    template-level fixes before edge-case pages. If journey coverage is blocked,
+    document the blocker and produce an explicit follow-up test plan.
