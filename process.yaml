@@ -223,8 +223,10 @@ verification:
     - name: wcag-mapping-required
       description: "Findings must map to relevant WCAG success criteria"
       check: >
-        Verify every finding includes at least one applicable WCAG criterion
-        reference (for example 1.1.1, 2.4.7, 3.3.1). Flag unmapped findings.
+        Verify every finding row in automated, manual, merged, and report
+        outputs includes one or more explicit WCAG references (for example
+        1.1.1, 2.4.7, 3.3.1) and that criteria align with the finding narrative.
+        Flag missing, malformed, or mismatched mappings.
       severity: error
       type: llm
       applies_to_phases: [automated-audit, manual-audit, findings-normalization, final-report]
@@ -232,8 +234,9 @@ verification:
     - name: evidence-required-per-finding
       description: "Each finding must include reproducible evidence"
       check: >
-        Ensure each finding includes reproducible evidence: URL/state, affected
-        element or component hint, and concise reproduction notes.
+        Ensure each finding includes reproducible evidence fields: URL or state,
+        impacted element/component context, and concise reproduction notes.
+        Flag findings with generic evidence or missing reproduction detail.
       severity: error
       type: llm
       applies_to_phases: [automated-audit, manual-audit, findings-normalization]
@@ -241,9 +244,9 @@ verification:
     - name: complete-process-coverage
       description: "Critical journeys must be fully tested"
       check: >
-        Verify that each critical journey from journey-inventory.csv is covered
-        in manual testing and represented in the findings register or explicitly
-        marked as no-issue with evidence.
+        Verify every critical journey from journey-inventory.csv is covered
+        end-to-end in manual testing notes and represented in findings-register.csv
+        or explicitly marked no-issue with supporting evidence.
       severity: error
       type: llm
       applies_to_phases: [manual-audit, findings-normalization, final-report]
@@ -251,20 +254,22 @@ verification:
     - name: remediation-specificity
       description: "Remediation guidance must be implementation-ready"
       check: >
-        Confirm remediation items identify owning role/team, technical direction,
-        and concrete validation approach. Flag generic advice.
-      severity: warning
+        Confirm each remediation item identifies owning role/team, concrete
+        technical implementation direction, and explicit validation approach.
+        Flag generic or non-actionable guidance.
+      severity: error
       type: llm
       applies_to_phases: [remediation-roadmap, final-report]
 
     - name: profile-version-consistency
       description: "Compliance profile must remain version-consistent"
       check: >
-        Ensure the same compliance profile/version declared in
-        compliance-profile.md is used consistently throughout all outputs.
+        Ensure the compliance profile and version declared in
+        compliance-profile.md are used consistently across all phase outputs,
+        including findings, remediation artifacts, and final summaries.
       severity: error
       type: llm
-      applies_to_phases: [scope-and-profile, final-report]
+      applies_to_phases: [scope-and-profile, automated-audit, manual-audit, findings-normalization, remediation-roadmap, final-report]
 
 evidence:
   record_schema:

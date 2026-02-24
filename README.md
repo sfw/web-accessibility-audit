@@ -4,6 +4,11 @@ A [Loom](https://github.com/sfw/loom) process package for structured website
 accessibility audits with WCAG-mapped findings and implementation-ready
 remediation planning.
 
+## No credentials required
+
+This package and all bundled tools run without third-party API keys or service
+credentials. Scans and URL discovery rely on direct HTTP(S) requests only.
+
 ## What this process does
 
 The `web-accessibility-audit` process runs a strict 7-phase workflow:
@@ -18,17 +23,53 @@ The `web-accessibility-audit` process runs a strict 7-phase workflow:
 
 ## Included tools
 
-Bundled tools are prefixed with `a11y_` and designed to support repeatable
-artifact generation:
+Bundled tools are prefixed with `a11y_` and designed for repeatable artifacts:
 
-- `a11y_url_inventory` - discover URLs, cluster templates, and propose samples
-- `a11y_scan` - run baseline heuristic checks with WCAG mapping
-- `a11y_flow_check` - evaluate critical journey flow health and manual test hooks
+- `a11y_url_inventory` - discovers URLs, clusters templates, and proposes a deterministic sample.
+- `a11y_scan` - runs heuristic accessibility checks and emits normalized findings.
+- `a11y_flow_check` - validates critical user flows and captures manual test checkpoints.
+
+## Network safety and request behavior
+
+All bundled URL-fetching tools apply the same hardened policy:
+
+- HTTP(S) only; non-web schemes are rejected.
+- SSRF protections block localhost, loopback, link-local, RFC1918/private,
+  reserved, multicast, and unspecified address ranges after DNS resolution.
+- Redirects are handled manually with bounded redirect depth; each redirect
+  target is re-validated.
+- Retries with exponential backoff are used for transient failures
+  (`408/425/429/500/502/503/504` and connection timeouts/errors).
+- `Retry-After` is honored for `429` and `503` responses when provided.
+- Per-host pacing defaults to conservative delays to avoid bursty traffic.
+- Requests include browser-like headers with honest default Loom user-agents,
+  plus optional user-agent override parameters.
+- Response bytes and request time are bounded for deterministic execution.
 
 ## Installation
 
+From a local path:
+
 ```bash
 loom install /path/to/web-accessibility-audit
+```
+
+From GitHub using full URL:
+
+```bash
+loom install https://github.com/sfw/web-accessibility-audit
+```
+
+From GitHub shorthand:
+
+```bash
+loom install sfw/web-accessibility-audit
+```
+
+Install into a specific workspace instead of global process storage:
+
+```bash
+loom install sfw/web-accessibility-audit -w /path/to/project
 ```
 
 ## Usage
@@ -48,6 +89,39 @@ For non-interactive execution:
 ```bash
 loom run "Audit https://example.com for WCAG 2.2 AA conformance" --workspace /tmp/a11y-audit --process web-accessibility-audit
 ```
+
+## Key tool parameters
+
+### `a11y_url_inventory`
+
+- Core discovery: `targets`, `max_urls`, `max_discovered_urls`, `crawl_depth`.
+- Discovery modes: `include_sitemap`, `respect_robots`, `include_subdomains`.
+- URL filtering: `include_patterns`, `exclude_patterns`, `keep_query_params`.
+- Network controls: `timeout_seconds`, `max_redirects`, `max_retries`,
+  `backoff_base_seconds`, `backoff_max_seconds`, `request_delay_seconds`,
+  `max_fetch_bytes`, `user_agent`.
+- Optional artifacts: `output_inventory_csv`, `output_sample_csv`,
+  `output_templates_csv`.
+
+### `a11y_scan`
+
+- Inputs and bounds: `urls`, `max_urls`, `max_findings_per_url`.
+- Output controls: `include_warnings`, `output_findings_csv`.
+- Network controls: `timeout_seconds`, `max_redirects`, `max_retries`,
+  `backoff_base_seconds`, `backoff_max_seconds`, `request_delay_seconds`,
+  `max_fetch_bytes`, `user_agent`.
+- Finding schema fields: `finding_id`, `url`, `rule_id`, `wcag_sc`, `severity`,
+  `impact`, `confidence`, `message`, `evidence`, `remediation`.
+
+### `a11y_flow_check`
+
+- Flow model: `flows` with ordered `steps` (string URL or step object with
+  `url`, optional `name`, and optional `expected_text` / `assert_text`).
+- Scope/bounds: `max_flows`, `max_steps_per_flow`, `require_https`.
+- Network controls: `timeout_seconds`, `max_redirects`, `max_retries`,
+  `backoff_base_seconds`, `backoff_max_seconds`, `request_delay_seconds`,
+  `max_fetch_bytes`, `user_agent`.
+- Optional artifacts: `output_flow_csv`, `output_flow_json`.
 
 ## Core deliverables
 
@@ -70,9 +144,14 @@ loom run "Audit https://example.com for WCAG 2.2 AA conformance" --workspace /tm
 - `conformance-summary.md`
 - `retest-plan.md`
 
-## Notes
+## Known limitations and manual validation requirements
 
-- Automated checks do not replace manual accessibility testing.
-- Findings should be validated in context for dynamic UI and assistive tech
-  behavior.
-- Use this process as an audit workflow, not a legal determination.
+- Heuristic checks cannot validate keyboard interaction quality, focus behavior,
+  AT announcement quality, or dynamic state transitions with full fidelity.
+- Authenticated flows may require pre-authenticated/manual execution context;
+  blocked or inaccessible steps should be manually validated.
+- JavaScript-rendered content can reduce static-parser coverage in automated
+  checks; inspect rendered states manually where risk is high.
+- WCAG conformance statements require manual verification for critical journeys,
+  form workflows, modal/dialog behavior, and error handling.
+- Treat automated outputs as evidence inputs, not final legal conclusions.
