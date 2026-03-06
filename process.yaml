@@ -8,6 +8,7 @@ description: >
   produces WCAG-mapped findings plus a prioritized remediation roadmap.
 author: "Loom Community"
 tags: [accessibility, a11y, wcag, compliance, ux, audit]
+risk_level: medium
 
 persona: |
   You are a senior web accessibility auditor and remediation advisor. You think
@@ -17,6 +18,27 @@ persona: |
   include concrete remediation guidance with owner-ready implementation detail.
 
 phase_mode: strict
+
+validity_contract:
+  enabled: true
+  claim_extraction:
+    enabled: true
+  critical_claim_types: [numeric, date, entity_fact]
+  min_supported_ratio: 0.75
+  max_unverified_ratio: 0.25
+  max_contradicted_count: 0
+  prune_mode: rewrite_uncertainty
+  require_fact_checker_for_synthesis: false
+  final_gate:
+    enforce_verified_context_only: true
+    synthesis_min_verification_tier: 2
+    critical_claim_support_ratio: 1.0
+    temporal_consistency:
+      enabled: false
+      require_as_of_alignment: false
+      enforce_cross_claim_date_conflict_check: false
+      max_source_age_days: 0
+      as_of: ""
 
 tool_guidance: |
   Use CSV for finding registries, matrices, and prioritized backlogs.
@@ -139,6 +161,11 @@ phases:
     verification_tier: 2
     is_critical_path: true
     is_synthesis: true
+    validity_contract:
+      min_supported_ratio: 0.8
+      max_unverified_ratio: 0.2
+      final_gate:
+        critical_claim_support_ratio: 1.0
     acceptance_criteria: >
       Final report includes executive summary, methodology, profile alignment,
       high-risk findings, prioritized plan, residual risks, and retest cadence.
