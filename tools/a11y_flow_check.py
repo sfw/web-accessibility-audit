@@ -516,6 +516,14 @@ class A11yFlowCheckTool(Tool):
         )
 
     @property
+    def is_mutating(self) -> bool:
+        return True
+
+    @property
+    def mutation_target_arg_keys(self) -> tuple[str, ...]:
+        return ("output_flow_csv", "output_flow_json")
+
+    @property
     def parameters(self) -> dict:
         return {
             "type": "object",
@@ -876,9 +884,10 @@ class A11yFlowCheckTool(Tool):
         if output_flow_csv:
             if ctx.workspace is None:
                 return ToolResult.fail("'output_flow_csv' requires an active workspace")
+            workspace_root = ctx.workspace.resolve()
             csv_path = self._resolve_path(output_flow_csv, ctx.workspace)
             _write_csv(csv_path, step_report_rows)
-            files_changed.append(str(csv_path))
+            files_changed.append(str(csv_path.relative_to(workspace_root)))
 
         output_flow_json = str(args.get("output_flow_json", "")).strip()
         output_payload = {
@@ -896,9 +905,10 @@ class A11yFlowCheckTool(Tool):
                 return ToolResult.fail(
                     "'output_flow_json' requires an active workspace"
                 )
+            workspace_root = ctx.workspace.resolve()
             json_path = self._resolve_path(output_flow_json, ctx.workspace)
             _write_json(json_path, output_payload)
-            files_changed.append(str(json_path))
+            files_changed.append(str(json_path.relative_to(workspace_root)))
 
         output_lines = [
             f"Flows checked: {len(flow_results)}",

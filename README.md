@@ -29,6 +29,21 @@ Bundled tools are prefixed with `a11y_` and designed for repeatable artifacts:
 - `a11y_scan` - runs heuristic accessibility checks and emits normalized findings.
 - `a11y_flow_check` - validates critical user flows and captures manual test checkpoints.
 
+## Maintainer upgrade guide (sealed-artifact mutation protocol)
+
+If you add or update bundled tools that can write, move, or delete workspace
+files, keep them aligned with Loom's mutation contract:
+
+1. Set `is_mutating = True` for every workspace-writing tool.
+2. Return accurate workspace-relative `files_changed` on every successful write.
+3. Expose `mutation_target_arg_keys` when write paths are not in `path`
+   (for example: `output_findings_csv`, `output_flow_json`).
+4. Resolve writes with `_resolve_path(..., ctx.workspace)` and keep targets in
+   the workspace.
+5. Treat `execution.sealed_artifact_post_call_guard` (`off|warn|enforce`) as
+   defense-in-depth only; preflight gating should come from mutating metadata
+   and path targeting, not post-call rollback behavior.
+
 ## Network safety and request behavior
 
 All bundled URL-fetching tools apply the same hardened policy:

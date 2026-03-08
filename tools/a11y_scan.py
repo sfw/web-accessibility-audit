@@ -897,6 +897,14 @@ class A11yScanTool(Tool):
         )
 
     @property
+    def is_mutating(self) -> bool:
+        return True
+
+    @property
+    def mutation_target_arg_keys(self) -> tuple[str, ...]:
+        return ("output_findings_csv",)
+
+    @property
     def parameters(self) -> dict:
         return {
             "type": "object",
@@ -1153,9 +1161,10 @@ class A11yScanTool(Tool):
                 return ToolResult.fail(
                     "'output_findings_csv' requires an active workspace"
                 )
+            workspace_root = ctx.workspace.resolve()
             resolved = self._resolve_path(output_csv_path, ctx.workspace)
             _write_csv(resolved, bounded_findings)
-            files_changed.append(str(resolved))
+            files_changed.append(str(resolved.relative_to(workspace_root)))
 
         output_lines = [
             f"URLs requested: {len(selected_urls)}",

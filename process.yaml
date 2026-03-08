@@ -1,5 +1,5 @@
 name: web-accessibility-audit
-version: "0.1.0"
+version: "0.1.1"
 schema_version: 2
 description: >
   End-to-end website accessibility audit workflow for public or private web

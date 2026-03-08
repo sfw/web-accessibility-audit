@@ -927,6 +927,18 @@ class A11yUrlInventoryTool(Tool):
         )
 
     @property
+    def is_mutating(self) -> bool:
+        return True
+
+    @property
+    def mutation_target_arg_keys(self) -> tuple[str, ...]:
+        return (
+            "output_inventory_csv",
+            "output_sample_csv",
+            "output_templates_csv",
+        )
+
+    @property
     def parameters(self) -> dict:
         return {
             "type": "object",
@@ -1349,9 +1361,10 @@ class A11yUrlInventoryTool(Tool):
                 continue
             if ctx.workspace is None:
                 return ToolResult.fail(f"'{arg_key}' requires an active workspace")
+            workspace_root = ctx.workspace.resolve()
             resolved = self._resolve_path(raw_output_path, ctx.workspace)
             _write_csv(resolved, rows, fieldnames)
-            files_changed.append(str(resolved))
+            files_changed.append(str(resolved.relative_to(workspace_root)))
 
         output_lines = [
             f"Seeds: {len(seeds)}",
